@@ -1,4 +1,9 @@
-# Reproducible Research: Peer Assessment 1
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+html_document:
+keep_md: true
+---
 
 
 ## Loading and preprocessing the data
@@ -26,7 +31,7 @@ Steps <- do.call(rbind,
 hist(Steps, breaks=23)  # I just like 23 and the default didn't seem like enough.
 ```
 
-![](PA1_template_files/figure-html/Histogram of steps-1.png) 
+![plot of chunk Histogram of steps](figure/Histogram of steps-1.png) 
 
 3. Calculate and report the mean and median of the total number of steps taken per day.
 
@@ -60,7 +65,7 @@ intervalData <- do.call(rbind,
 plot(intervalData, type='l', ylab="Average Step Count", xlab="Interval")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-1-1.png) 
+![plot of chunk unnamed-chunk-1](figure/unnamed-chunk-1-1.png) 
 
 2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
@@ -100,16 +105,17 @@ From my cursory glance at the data, it looks like entire days go missing so usin
 intervals <- activity[activity$date == "2012-10-01", "interval"]
 meanReplace <- function(data) {
   if (is.na(data[1])) {  # Replace step count with average if NA.
-    c(intervalData[match(data[3], intervals)], data[2:3])
-  } else {
-    data
+    c(intervalData[[match(as.numeric(data[3]), intervals), 2]], data[2:3])
+    } else {
+      data
+      }
   }
-}
 activityEX <- apply(activity,
                     1,
                     meanReplace)
 
-# R data structures make no sense, so you have to manually fix everything that broke.
+# R data structures make no sense, so just manually fix everything that broke.
+# Since R can't make up its mind on treating intervals as factors or ints, just roll with it.
 activityEX <- as.data.frame(t(activityEX))
 names(activityEX) <- names(activity)
 activityEX <- within(activityEX, steps <- as.numeric(as.character(steps)))
@@ -126,7 +132,7 @@ hist(Steps, breaks=23)
 hist(StepsEX, breaks=23)
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-5-1.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5-1.png) 
 
 ```r
 original <- c(mean(Steps, na.rm=T), median(Steps, na.rm=T))
@@ -137,9 +143,9 @@ data.frame(original, EX, row.names=c("mean", "median"))
 ```
 ##        original       EX
 ## mean   10766.19 10766.19
-## median 10765.00 10765.00
+## median 10765.00 10766.19
 ```
-No visible change in the histograms, means, or medians. Admittedly this is what I would expect from my lazy impute strategy. A more sophisticated approach would probably yield some difference between the two, though I doubt any reasonable method would result in any significant bias.
+Since entire days are missing and the impute strategy sets them all up with averages for each interval, the total steps for these days are all the same. So, the effect of filling in new days bumps the histogram value for that particular count up by those days. There's no change in the means or medians, but admittedly this is what I would expect from my lazy impute strategy. A more sophisticated approach would probably yield some difference between the two, though I doubt any reasonable method would result in any significant bias. The method I chose is just obviously bad on this histogram.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 1. Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
@@ -155,69 +161,28 @@ activityEX <- within(activityEX,
 2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
 
 ```r
-par(mfrow=c(1, 2))
+par(mfrow=c(2, 1))
 
 byWeekpart <- split(activityEX, activityEX$weekpart)
-StepsDay <- tapply(byWeekpart[[1]]$steps, byWeekpart[[1]]$interval, mean)
-StepsEnd <- tapply(byWeekpart[[2]]$steps, byWeekpart[[2]]$interval, mean)
 
-plot(StepsDay, type='l', ylab="Average Step Count", xlab="Interval", title="Weekday")
-```
 
-```
-## Warning in plot.window(...): "title" is not a graphical parameter
-```
+IDDC <- length(unique(byWeekpart[[1]]$date))
+IDD <- do.call(rbind,
+               lapply(split(byWeekpart[[1]], byWeekpart[[1]]$interval),
+                      function(data){
+                        c(intervals[data[1, 3]],
+                          sum(data[, 1]) / IDDC)}))
 
-```
-## Warning in plot.xy(xy, type, ...): "title" is not a graphical parameter
-```
+IDEC <- length(unique(byWeekpart[[2]]$date))
+IDE <- do.call(rbind,
+               lapply(split(byWeekpart[[2]], byWeekpart[[2]]$interval),
+                      function(data){
+                        c(intervals[data[1, 3]],
+                          sum(data[, 1]) / IDEC)}))
 
-```
-## Warning in axis(side = side, at = at, labels = labels, ...): "title" is not
-## a graphical parameter
-```
 
-```
-## Warning in axis(side = side, at = at, labels = labels, ...): "title" is not
-## a graphical parameter
+plot(IDD, type='l', ylab="Average Step Count", xlab="Interval", main="Weekday")
+plot(IDE, type='l', ylab="Average Step Count", xlab="Interval", main="Weekend")
 ```
 
-```
-## Warning in box(...): "title" is not a graphical parameter
-```
-
-```
-## Warning in title(...): "title" is not a graphical parameter
-```
-
-```r
-plot(StepsEnd, type='l', ylab="Average Step Count", xlab="Interval", title="Weekend")
-```
-
-```
-## Warning in plot.window(...): "title" is not a graphical parameter
-```
-
-```
-## Warning in plot.xy(xy, type, ...): "title" is not a graphical parameter
-```
-
-```
-## Warning in axis(side = side, at = at, labels = labels, ...): "title" is not
-## a graphical parameter
-```
-
-```
-## Warning in axis(side = side, at = at, labels = labels, ...): "title" is not
-## a graphical parameter
-```
-
-```
-## Warning in box(...): "title" is not a graphical parameter
-```
-
-```
-## Warning in title(...): "title" is not a graphical parameter
-```
-
-![](PA1_template_files/figure-html/unnamed-chunk-7-1.png) 
+![plot of chunk Why was this so hard](figure/Why was this so hard-1.png) 
